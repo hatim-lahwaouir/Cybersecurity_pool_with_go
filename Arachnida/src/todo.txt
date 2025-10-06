@@ -1,0 +1,8 @@
+[x] how to handle arguments
+
+
+[ ] we need to do the main request 
+[ ] we need to save cookies so that each request will contian the same cookie
+
+[ ] we need to apply this to all the requests 
+[ ] we need to figuire out how to same cookies for each request 
