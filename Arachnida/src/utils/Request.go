@@ -1,15 +1,15 @@
 package utils
 
 import (
+	"Arachnida/src/types"
+	"fmt"
+	"golang.org/x/net/html"
 	"log"
 	"math/rand"
-    "fmt"
-    "os"
 	"net/http"
 	"net/url"
-	"golang.org/x/net/html"
-	"Arachnida/src/types"
-    "strings"
+	"os"
+	"strings"
 )
 
 var userAgents = []string{
@@ -31,28 +31,22 @@ func NewRequest(url string) *http.Request {
 	return req
 }
 
+func HandleRequest(ctx *types.Ctx, node *types.UrlNode) *types.UrlNode {
 
-
-
-
-
-
-func HandleRequest(client *http.Client, node *types.UrlNode, ctx *types.Ctx) *types.UrlNode {
-
-    var (
-	    process func(*html.Node)
-        newUrl  string
-    )
+	var (
+		process func(*html.Node)
+		newUrl  string
+	)
 
 	req := NewRequest(node.Url)
-	resp, err := client.Do(req)
+	resp, err := ctx.Client.Do(req)
 
 	if err != nil {
 		fmt.Fprintf(os.Stdout, "%s: request failled error '%s'", os.Args[0], err.Error())
-        return  nil
+		return nil
 	}
 	// c := resp.Cookies()
-    defer resp.Body.Close()
+	defer resp.Body.Close()
 	doc, err := html.Parse(resp.Body)
 	if err != nil {
 		fmt.Fprintf(os.Stdout, "%s: can't parse html in this url %s ", os.Args[0], node.Url)
@@ -61,27 +55,22 @@ func HandleRequest(client *http.Client, node *types.UrlNode, ctx *types.Ctx) *ty
 
 	process = func(n *html.Node) {
 		if n.Type == html.ElementNode && n.Data == "a" {
-            for _, ele := range n.Attr {
+			for _, ele := range n.Attr {
 
-                 if ele.Key == "href"  {
-                     fmt.Println(ele.Val)
-                }
-
-                
-                if ele.Key == "href" && (strings.HasPrefix(ele.Val, "/") || strings.HasPrefix(ele.Val, ctx.BaseUrl)){
-                    newUrl, err = url.JoinPath(ctx.BaseUrl, ele.Val)
-                    if err == nil {
-                        node.C = append(node.C, &types.UrlNode{Url : newUrl })
-                    }
-                }
-            }
+				if ele.Key == "href" && (strings.HasPrefix(ele.Val, "/") || strings.HasPrefix(ele.Val, ctx.BaseUrl)) {
+					newUrl, err = url.JoinPath(ctx.BaseUrl, ele.Val)
+					if err == nil {
+						node.C = append(node.C, &types.UrlNode{Url: newUrl})
+					}
+				}
+			}
 		}
-        if n.Type == html.ElementNode && n.Data == "img" {
-            for _, ele := range n.Attr {
-                if ele.Key == "href" {
-                    fmt.Println(ele.Val) 
-                }
-            }
+		if n.Type == html.ElementNode && n.Data == "img" {
+			for _, ele := range n.Attr {
+				if ele.Key == "src" {
+					ctx.ImgLinks <- ele.Val
+				}
+			}
 		}
 
 		// traverse the child nodes
@@ -90,8 +79,6 @@ func HandleRequest(client *http.Client, node *types.UrlNode, ctx *types.Ctx) *ty
 		}
 	}
 
-    process(doc)
-    fmt.Println("****************************************************")
-    fmt.Println(node)
-    return node
+	process(doc)
+	return node
 }

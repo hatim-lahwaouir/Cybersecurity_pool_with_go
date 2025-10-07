@@ -1,11 +1,19 @@
 package types
 
+import (
+    "net/http"
+    "sync"
+)
+
 
 
 
 
 type Ctx struct {
     BaseUrl string
+    ImgLinks chan string
+    Client *http.Client
+    Wg sync.WaitGroup
 }
 
 
