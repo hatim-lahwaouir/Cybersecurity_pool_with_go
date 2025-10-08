@@ -2,13 +2,11 @@ package utils
 
 import (
 	"Arachnida/src/types"
-	"fmt"
 	"golang.org/x/net/html"
 	"log"
 	"math/rand"
 	"net/http"
 	"net/url"
-	"os"
 	"strings"
 )
 
@@ -42,14 +40,12 @@ func HandleRequest(ctx *types.Ctx, node *types.UrlNode) *types.UrlNode {
 	resp, err := ctx.Client.Do(req)
 
 	if err != nil {
-		fmt.Fprintf(os.Stdout, "%s: request failled error '%s'", os.Args[0], err.Error())
 		return nil
 	}
 	// c := resp.Cookies()
 	defer resp.Body.Close()
 	doc, err := html.Parse(resp.Body)
 	if err != nil {
-		fmt.Fprintf(os.Stdout, "%s: can't parse html in this url %s ", os.Args[0], node.Url)
 		return nil
 	}
 
@@ -58,17 +54,23 @@ func HandleRequest(ctx *types.Ctx, node *types.UrlNode) *types.UrlNode {
 			for _, ele := range n.Attr {
 
 				if ele.Key == "href" && (strings.HasPrefix(ele.Val, "/") || strings.HasPrefix(ele.Val, ctx.BaseUrl)) {
-					newUrl, err = url.JoinPath(ctx.BaseUrl, ele.Val)
-					if err == nil {
-						node.C = append(node.C, &types.UrlNode{Url: newUrl})
-					}
+                    if _, ok := ctx.VisitedUrl[ele.Val]; !ok {
+                        newUrl, err = url.JoinPath(ctx.BaseUrl, ele.Val)
+                        if err == nil {
+                            node.C = append(node.C, &types.UrlNode{Url: newUrl})
+                        }
+                        ctx.VisitedUrl[ele.Val] = true
+                    }
 				}
 			}
 		}
 		if n.Type == html.ElementNode && n.Data == "img" {
 			for _, ele := range n.Attr {
 				if ele.Key == "src" {
-					ctx.ImgLinks <- ele.Val
+                    if _, ok := ctx.DownloadedImgs[ele.Val]; !ok{
+					     ctx.ImgLinks <- ele.Val
+                         ctx.DownloadedImgs[ele.Val] = true
+                    }
 				}
 			}
 		}

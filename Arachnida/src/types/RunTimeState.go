@@ -14,6 +14,8 @@ type Ctx struct {
     ImgLinks chan string
     Client *http.Client
     Wg sync.WaitGroup
+    VisitedUrl map[string]bool
+    DownloadedImgs map[string]bool
 }
 
 
